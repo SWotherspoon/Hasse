@@ -1,0 +1,150 @@
+---
+title: "Newman"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Newman}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+## Block Interactions
+
+Newman et al. (1997) discuss the inclusion of interactions with blocking factors in mixed model 
+anova.  Here we reproduce the blue crab example from Newman et al. (1997) with the Hasse package.
+
+```{r setup}
+library(Hasse)
+library(DiagrammeR)
+```
+
+
+## Data
+
+The data from the blue crab predation example given by Newman et al. (1997) do not appear to be 
+available and so we simulate data with an identical sums of squares decomposition 
+```{r}
+## Simulate a response that yields the given sums of squares
+simulateSS <- function(formula,data,SS) {
+  tms <- terms(formula)
+  X <- model.matrix(delete.response(tms),data=data)
+  Q <- qr.Q(qr(X))
+  ks <- attr(X,"assign")
+  err <- rnorm(nrow(Q))
+  err <- err - Q%*%t(Q)%*%err
+  err <- err/sqrt(sum(err^2))
+  Q <- cbind(Q[,ks>0],err)
+  ks <- c(ks[ks>0],max(ks)+1)
+  bs <- rnorm(ncol(Q))
+  bs <- bs*sqrt(SS/tapply(bs^2,ks,sum))[ks]
+  data[,as.character(tms[[2]])] <- Q%*%bs
+  data
+}
+```
+
+Using the sums of squares reported for model 1 in Table 1 on page 1314, 
+```{r}
+## Simulate similar data
+df <- expand.grid(
+  Block=factor(c("1","3","5","7","9")),
+  Habitat=factor(c("H1","H2")),
+  Tether=factor(c("T1","T2")),
+  Rep=1:10)
+df <- simulateSS(Rate~Block*Habitat*Tether,data=df,
+                 SS=c(11.473, 0.751, 0.36, 0.301, 0.409, 0.004, 0.137, 8.458))
+head(df)
+```
+
+The simulated data reproduces the reported sums of squares for model 1 
+```{r}
+## Check sums of squares
+fit <- aov(Rate~Block*Habitat*Tether,data=df)
+summary(fit)
+```
+and model 2
+```{r}
+fit <- aov(Rate~Block+Habitat*Tether,data=df)
+summary(fit)
+```
+
+
+
+
+## Block Interactions
+
+First consider the case where interactions with the blocks are included in the model and construct 
+a Hasse diagram treating the blocks as random
+```{r}
+## Hasse diagram when blocks interact with treatments
+grViz(hasseDiagram(Rate~Block*Habitat*Tether,random="Block",data=df))
+```
+
+The Hasse diagram shows that 
+
+* the habitat effect should be tested against the block by habitat interaction,
+* the tether effect should be tested against the block by tether interaction, and
+* the habitat by tether interaction should be tested against the block by habitat by tether 
+  interaction
+
+But the tests for the block effect and the block by habitat and block by tether interactions depend 
+upon whether the restricted or unrestricted model is used.  For the restricted model
+```{r}
+## Correct tests from EMS (restricted model)
+fit.ems <- aov(Rate~Block*Habitat*Tether,data=df)
+mixed(fit.ems,random = "Block",restricted=T)
+```
+
+For the unrestricted model there is no test for the block effect (a quasi-F test is required) and 
+all second order interactions are tested against the third order interaction.
+```{r}
+## Correct tests from EMS (unrestricted model)
+fit.ems <- aov(Rate~Block*Habitat*Tether,data=df)
+mixed(fit.ems,random = "Block",restricted=F)
+```
+
+The equivalent results for `aov` are obtained by placing all the random terms in the `Error` 
+specification
+```{r}
+## Multistratum model
+fit <- aov(Rate~Habitat*Tether+Error(Block+Block:Habitat+Block:Tether+Block:Habitat:Tether),
+           data=df)
+summary(fit)
+```
+
+
+
+### Additive Blocks
+
+Alternately, consider the case where interactions where the block effects are assumed purely 
+additive and construct a Hasse diagram
+```{r}
+## Hasse Diagram when blocks additive
+grViz(hasseDiagram(Rate~Block+Habitat*Tether,random="Block",data=df))
+```
+
+In this case the diagram shows that all the effects should be tested against the error sums of 
+squares 
+```{r}
+## Correct tests from EMS
+fit.ems <- aov(Rate~Block+Habitat*Tether,data=df)
+mixed(fit.ems,random = "Block")
+```
+
+The equivalent analysis with `aov` is given by
+```{r}
+## Multistratum model
+fit <- aov(Rate~Habitat*Tether+Error(Block),data=df)
+summary(fit)
+```
+
+
+## References
+
+Newman, J. A., Bergelson, J., & Grafen, A. (1997). Blocking factors and hypothesis tests in ecology: 
+is your statistics text wrong?. *Ecology*, 78(5), 1312-1320.

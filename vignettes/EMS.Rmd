@@ -1,0 +1,354 @@
+---
+title: "EMS"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{EMS}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+
+## Hasse Diagrams
+
+This document demonstrates how expected mean squares can be calculated from the Hasse diagram, 
+following the procedures described in [Oehlert(2010)](http://users.stat.umn.edu/~gary/book/fcdae.pdf).
+
+```{r setup}
+library(Hasse)
+library(DiagrammeR)
+```
+
+## Two Way Factorial Anova
+
+Consider the two way factorial. For concreteness, suppose A has 5 levels and B has 3, so there are
+$5 \times 3 = 15$ treatment combinations in total, and suppose there are two replications of each
+treatment combination so there are $5 \times 3 \times 2 = 30$ units.
+
+```{r}
+df <- expand.grid(A=factor(1:5),B=factor(1:3),Rep=factor(1:2))
+```
+
+
+The Hasse diagram is laid out from top to bottom, with a term for the grand mean M at the top, and a
+term for the error at the bottom.  Then the terms of the model are laid in rows by order: main
+effects first, then second order interactions, then third order interactions, and so on.  If a term
+is nested in another, it is drawn directly under it on the next row down.
+
+For each term, a line is drawn to every term in the row up that it "contains". A term Y is above X
+if Y can be reached from X by moving up line segments, and Y is below X if Y can be reached from X
+by moving down line segments.
+
+Random factors are drawn in parentheses, and if a term is below a term with parentheses it is also
+drawn in parentheses.  The error term is always random, so it is always parenthesized.
+
+
+### Random A, B
+
+If A and B are both random
+
+```{r}
+grViz(hasseDiagram(~ A*B,random=c("A","B"),data=df))
+```
+
+To calculate superscripts and subscripts
+
+* the grand mean has both subscript and superscript 1, and the error has the number of observations
+  as its superscript,
+* the superscript of a term is the product of the number of levels of the factors contained in that
+  term, and
+* the subscript is its superscript minus the subscripts of all terms above it.
+
+So for the diagram above
+
+* A has $5$ levels, so it has superscript $5$ and its subscript is $5-1=4$.
+* B has $3$ levels, so it has superscript $3$ and its subscript is $3-1=2$.
+* A:B is constructed from A and B so its superscript is the product of the superscripts of A and B,
+  $5 \times 3 = 15$, and its subscript is $15-1-4-2=8$.
+* the error term always has the total number of observations as its superscript, and its subscript 
+  is $30-1-4-2-8=15$.
+
+
+A term X is tested against the "highest" parenthesized term below it *that does not contain a fixed
+term that is not contained X* If there is more than one "highest" term, then a quasi-ratio must be
+constructed.
+
+In this case both A and B are tested against A:B, and A:B is tested against the error term.
+
+The expected mean square for a term X is constructed from X and all the parenthesized terms below X
+*that do not contain fixed terms that are not contained in X*. The coefficients are the ratios of
+the superscript for the error term and the superscript for the parenthesized term.
+
+The expected mean square for A is 
+$$
+\frac{30}{5} \sigma_{\alpha}^{2} + \frac{30}{15} \sigma_{\alpha\beta}^2 + \sigma^2
+$$
+the expected mean square for B is 
+$$
+\frac{30}{3} \sigma_{\beta}^{2} + \frac{30}{15} \sigma_{\alpha\beta}^2 + \sigma^2
+$$
+and the expected mean square for A:B is 
+$$
+\frac{30}{15} \sigma_{\alpha\beta}^2 + \sigma^2
+$$
+
+### Fixed A, Random B
+
+If instead, A is fixed, all that changes are the parentheses.
+
+```{r}
+grViz(hasseDiagram(~ A*B,random=c("B"),data=df))
+```
+
+In this case A is fixed so it has no parentheses, but B is random so it is parenthesized, and AB
+contains B so it is parenthesized too.
+
+In this case, A is again tested against A:B and A:B against the error term, but A:B contains A which
+is fixed, so B is tested against the error term.
+
+The expected mean square for A is 
+$$
+Q(\alpha) + \frac{30}{15} \sigma_{\alpha\beta}^2 + \sigma^2
+$$
+and the expected mean square for A:B is 
+$$
+\frac{30}{15} \sigma_{\alpha\beta}^2 + \sigma^2.
+$$
+But as A is above A:B, the expected mean square for B is 
+$$
+\frac{30}{3} \sigma_{\beta}^{2} + \sigma^2
+$$
+
+
+### Fixed A,B
+
+For the model where both A and B are fixed, again only the parentheses change in the diagram
+```{r}
+grViz(hasseDiagram(~ A*B,data=df))
+```
+
+In this case A, B and A:B are tested against the error term and the expected mean for A is 
+$$
+Q(\alpha) + \sigma^2
+$$
+the expected mean square for B is 
+$$
+Q(\beta) + \sigma^2
+$$
+
+and the expected mean square for A:B is
+$$
+Q(\alpha\beta) + \sigma^2
+$$
+
+
+## Nested ANOVA
+
+Consider a simple nested design. Again suppose A has 5 levels, B has 3 levels and is nested in A,
+and we take 2 replicate measurements.
+
+### Random A,B
+
+For the model where both A and B are random the diagram is
+
+```{r}
+grViz(hasseDiagram(~ A/B,random=c("A","B"),data=df))
+```
+
+Here B is nested within A so it is directly under A in the diagram, and
+
+* A has $5$ levels, so it has superscript $5$ and its subscript is $5-1=4$.
+* B has $3$ levels and is nested within A, so it is represented in the diagram as A:B and has
+  superscript $5 \times 3 = 15$ with subscript $15-1-4=10$.
+* The error term always has the total number of observations as its superscript, and its subscript
+  is $30-1-4-10=15$.
+
+In this case A is tested against B, and B is tested against the error term.
+
+The expected mean square for A is
+$$
+\frac{30}{5} \sigma_{\alpha}^{2} + \frac{30}{15} \sigma_{\beta}^2 + \sigma^2
+$$
+
+and the expected mean square for B is
+$$
+\frac{30}{15} \sigma_{\beta}^2 + \sigma^2
+$$
+
+### Fixed A, Random B
+
+When A is fixed
+
+```{r}
+grViz(hasseDiagram(~ A/B,random=c("B"),data=df))
+```
+
+Again A is tested against B, and B is tested against the error term.
+
+The expected mean square for A is
+$$
+Q(\alpha) + \frac{30}{15} \sigma_{\beta}^2 + \sigma^2
+$$
+
+and the expected mean square for B is
+$$
+\frac{30}{15} \sigma_{\beta}^2 + \sigma^2
+$$
+
+
+## Complex Design
+
+Consider a factorial design with two crossed factors A and B, with a third factor C nested within
+combinations of A and B.  Suppose A has 5 levels, B has 3 levels and C has 4, and we take 2
+replicate measurements.
+
+```{r}
+df <- expand.grid(A=factor(1:5),B=factor(1:3),C=factor(1:4),Rep=factor(1:2))
+```
+
+### Fixed A, B
+
+If A and B are fixed and C is random
+
+```{r}
+grViz(hasseDiagram(~ (A*B)/C,random=c("C"),data=df))
+```
+
+
+Here
+
+* A has $5$ levels, so it has superscript $5$ and its subscript is $5-1=4$.
+* B has $3$ levels, so it has superscript $3$ and its subscript is $3-1=2$.
+* A:B is constructed from A and B so its superscript is the product of the superscripts of A and B,
+  $5 \times 3 = 15$, and its subscript is $15-1-4-2=8$.
+* C is nested in A:B, so it appears in the diagram as A:B:C, its superscript is the the product of
+  the superscripts of A and B and the levels in C $5 \times 3 \times 4 = 60$ and its subscript is
+  $60-1-4-2-8=45$.
+* The error term always has the total number of observations as its superscript, and its subscript
+  is $120-1-4-2-8-45=60$.
+
+In this case A, B and A:B are tested against C.
+
+The expected mean square for A is
+$$
+Q(\alpha) + \frac{120}{60} \sigma_{\gamma}^{2}+\sigma^2
+$$
+The expected mean square for B is
+$$
+Q(\beta) + \frac{120}{60} \sigma_{\gamma}^{2}+\sigma^2
+$$
+The expected mean square for AB is
+$$
+Q(\alpha\beta) + \frac{120}{60} \sigma_{\gamma}^{2}+\sigma^2
+$$
+The expected mean square for C is
+$$
+\frac{120}{60} \sigma_{\gamma}^{2}+\sigma^2
+$$
+
+### Random A, B
+
+If A, B and C are random
+```{r}
+grViz(hasseDiagram(~ (A*B)/C,random=c("A","B","C"),data=df))
+```
+
+In this case, A and B are tested against A:B, A:B is tested against C and C is tested against the
+error term.
+
+
+The expected mean square for A is
+$$
+\frac{120}{5} \sigma_{\alpha}^2 + \frac{120}{15} \sigma_{\alpha\beta}^2 + \frac{120}{60} \sigma_{\gamma}^{2}+\sigma^2
+$$
+The expected mean square for B is
+$$
+\frac{120}{3} \sigma_{\beta}^2 + \frac{120}{15} \sigma_{\alpha\beta}^2 + \frac{120}{60} \sigma_{\gamma}^{2}+\sigma^2
+$$
+The expected mean square for A:B is
+$$
+\frac{120}{15} \sigma_{\alpha\beta}^2 + \frac{120}{60} \sigma_{\gamma}^{2}+\sigma^2
+$$
+The expected mean square for C is
+$$
+\frac{120}{60} \sigma_{\gamma}^{2}+\sigma^2
+$$
+
+
+### Fixed A, Random B
+
+If A is fixed and B and C are random
+```{r}
+grViz(hasseDiagram(~ (A*B)/C,random=c("B","C"),data=df))
+```
+
+
+Then A is tested against A:B, but A:B contains A so B is tested against C, and A:B is tested against 
+C and C is tested against the error term.
+
+The expected mean square for A is
+$$
+Q(\alpha) + \frac{120}{15} \sigma_{\alpha\beta}^2 + \frac{120}{60} \sigma_{\gamma}^{2}+\sigma^2
+$$
+The expected mean square for B is
+$$
+\frac{120}{3} \sigma_{\beta}^2 + \frac{120}{60} \sigma_{\gamma}^{2}+\sigma^2
+$$
+The expected mean square for A:B is
+$$
+\frac{120}{15} \sigma_{\alpha\beta}^2 + \frac{120}{60} \sigma_{\gamma}^{2}+\sigma^2
+$$
+
+The expected mean square for C is
+$$
+\frac{120}{60} \sigma_{\gamma}^{2}+\sigma^2
+$$
+
+
+
+## Quasi-F Ratios
+
+Quasi-F ratios occur when there is no unique term to test against.  Consider a three way factorial
+design where A, B and C are random, again with 5, 3 and 4 levels respectively and two replicate
+measurements
+```{r}
+grViz(hasseDiagram(~ A*B*C,random=c("A","B","C"),data=df))
+```
+
+In this case there is no unique "highest" parenthesized term below A, so to test A we would need to
+construct a quasi-F ratio.
+
+The expected mean square for A is
+$$
+\frac{120}{5} \sigma_{\alpha}^2 + \frac{120}{15} \sigma_{\alpha\beta}^2 + 
+\frac{120}{20} \sigma_{\alpha\gamma}^{2}+\frac{120}{60} \sigma_{\alpha\beta\gamma}^{2}+\sigma^2
+$$
+while the expected mean square for A:B is
+$$
+\frac{120}{15} \sigma_{\alpha\beta}^2 + \frac{120}{60} \sigma_{\alpha\beta\gamma}^{2}+\sigma^2
+$$
+the expected mean square for A:C is
+$$
+\frac{120}{20} \sigma_{\alpha\gamma}^2 + \frac{120}{60} \sigma_{\alpha\beta\gamma}^{2}+\sigma^2
+$$
+and the expected mean square for A:B:C is
+$$
+\frac{120}{60} \sigma_{\alpha\beta\gamma}^{2}+\sigma^2
+$$
+In this case to test A we can test against
+$$
+\operatorname{EMS}(\text{A:B})+\operatorname{EMS}(\text{B:C})-\operatorname{EMS}(\text{A:B:C})
+=\frac{120}{15} \sigma_{\alpha\beta}^2 + 
+\frac{120}{20} \sigma_{\alpha\gamma}^{2}+\frac{120}{60} \sigma_{\alpha\beta\gamma}^{2}+\sigma^2
+$$
+
+
+## References
+
+Oehlert, G. W. (2010). A first course in design and analysis of experiments.
