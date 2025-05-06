@@ -11,7 +11,7 @@ Hasse constructs Hasse diagrams for mixed model anova.
 The current version of Hasse can be installed from GitHub using the remotes package. 
 ```r
 # install.packages("remotes")
-remotes::install_github("SWotherspoon/groebner")
+remotes::install_github("SWotherspoon/Hasse")
 ```
 
 ## Example
