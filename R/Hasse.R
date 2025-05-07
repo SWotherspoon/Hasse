@@ -1,9 +1,17 @@
 ##' Create a Hasse Diagram.
 ##'
+##' @title Hasse Diagram
 ##' @param formula A formula object.
 ##' @param random A character vector of terms considered random.
 ##' @param data A data frame.
 ##' @return DiagrammeR script for the Hasse diagram.
+##' @examples
+##' library(DiagrammeR)
+##' df <- expand.grid(A=factor(1:2),B=factor(1:7),Rep=factor(1:2))
+##' grViz(hasseDiagram(~ A*B,random="B",data=df))
+##'
+##' @references Oehlert, G. W. (2010). A first course in design and
+##'   analysis of experiments.
 ##' @importFrom stats setNames
 ##' @export
 hasseDiagram <- function(formula,random=NULL,data=NULL) {
@@ -200,12 +208,23 @@ hasseGraph <- function(tmsobj,random=NULL,restricted=TRUE,data=NULL) {
 }
 
 
-##' Create the anova table for a mixed model anova
+##' Create the anova table for a mixed model anova.
 ##'
+##' @title Mixed Model Anova Table
 ##' @param aov and aov object.
 ##' @param random A character vector of terms considered random.
 ##' @param restricted should the restricted or unrestricted model be calculated?
 ##' @return Aov object with recalculated anova table.
+##' @examples
+##' library(DiagrammeR)
+##' df <- expand.grid(A=factor(1:2),B=factor(1:7),Rep=factor(1:2))
+##' df$y <- c(12,14)[df$A]+rnorm(7,0,0.4)[df$B]+rnorm(nrow(df),0,0.3)
+##' grViz(hasseDiagram(~ A*B,random="B",data=df))
+##' ## A is tested against A:B
+##' mixed(aov(y ~ A*B,data=df),random="B")
+##'
+##' @references Oehlert, G. W. (2010). A first course in design and
+##'   analysis of experiments.
 ##' @importFrom stats pf formula replications terms
 ##' @export
 mixed <- function(aov,random=NULL,restricted=TRUE) {

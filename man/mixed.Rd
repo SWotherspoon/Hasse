@@ -2,7 +2,7 @@
 % Please edit documentation in R/Hasse.R
 \name{mixed}
 \alias{mixed}
-\title{Create the anova table for a mixed model anova}
+\title{Mixed Model Anova Table}
 \usage{
 mixed(aov, random = NULL, restricted = TRUE)
 }
@@ -17,5 +17,18 @@ mixed(aov, random = NULL, restricted = TRUE)
 Aov object with recalculated anova table.
 }
 \description{
-Create the anova table for a mixed model anova
+Create the anova table for a mixed model anova.
+}
+\examples{
+library(DiagrammeR)
+df <- expand.grid(A=factor(1:2),B=factor(1:7),Rep=factor(1:2))
+df$y <- c(12,14)[df$A]+rnorm(7,0,0.4)[df$B]+rnorm(nrow(df),0,0.3)
+grViz(hasseDiagram(~ A*B,random="B",data=df))
+## A is tested against A:B
+mixed(aov(y ~ A*B,data=df),random="B")
+
+}
+\references{
+Oehlert, G. W. (2010). A first course in design and
+analysis of experiments.
 }

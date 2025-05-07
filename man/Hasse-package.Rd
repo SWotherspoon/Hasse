@@ -8,6 +8,14 @@
 \description{
 Create Hasse diagrams and constructs the corresponding anova table.
 }
+\seealso{
+Useful links:
+\itemize{
+  \item \url{https://github.com/SWotherspoon/Hasse}
+  \item Report bugs at \url{https://github.com/SWotherspoon/Hasse/issues}
+}
+
+}
 \author{
 \strong{Maintainer}: Simon Wotherspoon \email{Simon.Wotherspoon@aad.gov.au} (\href{https://orcid.org/0000-0002-6947-4445}{ORCID})
 

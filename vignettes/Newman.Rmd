@@ -148,3 +148,6 @@ summary(fit)
 
 Newman, J. A., Bergelson, J., & Grafen, A. (1997). Blocking factors and hypothesis tests in ecology: 
 is your statistics text wrong?. *Ecology*, 78(5), 1312-1320.
+
+Oehlert, G. W. (2010). A first course in design and analysis of experiments.
+
